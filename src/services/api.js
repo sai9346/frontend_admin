@@ -214,16 +214,4 @@ export const deactivateAccount = async (userId, otp) => {
   } catch (error) {
     throw error.response.data; // Throw error message if failed
   }
-};// Function to verify OTP and change quota
-export const verifyOtpAndChangeQuota = async (userId, otp, quota) => {
-  try {
-    const response = await axios.post(`/api/admin/verify-otp-and-change-quota`, {
-      userId,
-      otp,
-      quota
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response.data.message || 'Error verifying OTP and changing quota.');
-  }
 };
