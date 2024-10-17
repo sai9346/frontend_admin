@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Update API_URL to point to your deployed backend
-const API_URL = 'https://backend-admin-nqf3.onrender.com/api'; // Adjusted for production use
+const API_URL = 'http://localhost:5000/api'; // Adjusted for production use
 
 // Error handling utility function
 const handleError = (action, error) => {
@@ -182,5 +182,48 @@ export const sendBulkNotifications = async (userIds, message, type) => {
     return response.data;
   } catch (error) {
     handleError('sending bulk notifications', error);
+  }
+};
+
+// Fetch audit data
+export const fetchAuditData = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/audit`); // This should match the backend route
+    return response.data;
+  } catch (error) {
+    handleError('fetching audit data', error);
+  }
+};
+
+
+
+// Function to reactivate account
+export const reactivateAccount = async (userId, otp) => {
+  try {
+    const response = await axios.post('/accounts/reactivate', { userId, otp });
+    return response.data; // Return the response data (message)
+  } catch (error) {
+    throw error.response.data; // Throw error message if failed
+  }
+};
+// Function to deactivate account
+export const deactivateAccount = async (userId, otp) => {
+  try {
+    const response = await axios.post('/accounts/deactivate', { userId, otp });
+    return response.data; // Return the response data (message)
+  } catch (error) {
+    throw error.response.data; // Throw error message if failed
+  }
+};// Function to verify OTP and change quota
+export const verifyOtpAndChangeQuota = async (userId, otp, quota) => {
+  try {
+    const response = await axios.post(`/api/admin/verify-otp-and-change-quota`, {
+      userId,
+      otp,
+      quota
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response.data.message || 'Error verifying OTP and changing quota.');
   }
 };

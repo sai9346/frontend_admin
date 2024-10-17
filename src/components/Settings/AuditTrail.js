@@ -1,74 +1,63 @@
-// import React, { useEffect, useState } from 'react';
-
-// const AuditTrail = () => {
-//   const [auditLogs, setAuditLogs] = useState([]);
-
-//   useEffect(() => {
-//     const fetchAuditLogs = async () => {
-//       const response = await fetch('/api/auditTrail'); // Placeholder API
-//       const data = await response.json();
-//       setAuditLogs(data);
-//     };
-//     fetchAuditLogs();
-//   }, []);
-
-//   return (
-//     <div>
-//       <h2 className="text-2xl font-bold mb-4">Audit Trail</h2>
-//       <table className="min-w-full bg-white border">
-//         <thead>
-//           <tr>
-//             <th className="border px-4 py-2">Action</th>
-//             <th className="border px-4 py-2">User</th>
-//             <th className="border px-4 py-2">Date</th>
-//           </tr>
-//         </thead>
-//         <tbody>
-//           {auditLogs.map(log => (
-//             <tr key={log.id}>
-//               <td className="border px-4 py-2">{log.action}</td>
-//               <td className="border px-4 py-2">{log.user}</td>
-//               <td className="border px-4 py-2">{log.date}</td>
-//             </tr>
-//           ))}
-//         </tbody>
-//       </table>
-//     </div>
-//   );
-// };
-
-// export default AuditTrail;
-
-
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { fetchAuditData } from '../../services/api'; // Adjust the import based on your file structure
 
 const AuditTrail = () => {
-  const [auditLogs] = useState([
-    { id: 1, action: 'User logged in', date: '2024-10-10', user: 'user1' },
-    { id: 2, action: 'Password changed', date: '2024-10-11', user: 'user1' },
-    { id: 3, action: 'Profile updated', date: '2024-10-12', user: 'user2' },
-  ]);
+  const [auditData, setAuditData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Fetch audit data when the component mounts
+  useEffect(() => {
+    const loadAuditData = async () => {
+      try {
+        const data = await fetchAuditData(); // Fetch audit data using the utility function
+        setAuditData(data);
+      } catch (err) {
+        setError(err.message); // Set error message based on the error caught
+      } finally {
+        setLoading(false); // Always stop loading state
+      }
+    };
+
+    loadAuditData();
+  }, []);
+
+  if (loading) {
+    return <div className="loading">Loading audit trail...</div>;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Audit Trail</h2>
-      <table className="min-w-full bg-white border border-gray-300">
+    <div className="audit-trail-container">
+      <h2>Admin Audit Trail</h2>
+
+      <table className="audit-trail-table">
         <thead>
           <tr>
-            <th className="py-2 px-4 border-b">Action</th>
-            <th className="py-2 px-4 border-b">Date</th>
-            <th className="py-2 px-4 border-b">User</th>
+            <th>Date & Time</th>
+            <th>Change Type</th>
+            <th>Admin ID</th>
+            <th>OTP Validation Status</th>
           </tr>
         </thead>
         <tbody>
-          {auditLogs.map(log => (
-            <tr key={log.id}>
-              <td className="py-2 px-4 border-b">{log.action}</td>
-              <td className="py-2 px-4 border-b">{log.date}</td>
-              <td className="py-2 px-4 border-b">{log.user}</td>
+          {auditData.length > 0 ? (
+            auditData.map((record) => (
+              <tr key={record._id}>
+                <td>{new Date(record.timestamp).toLocaleString()}</td>
+                <td>{record.changeType}</td>
+                <td>{record.adminId}</td>
+                <td>{record.otpStatus ? 'Success' : 'Failed'}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="4">No audit records found</td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>

@@ -125,6 +125,7 @@ const AdminDashboard = () => {
       <div className="flex-1 overflow-auto">
         <DashboardContent activeItem={activeItem} />
       </div>
+    
     </div>
   );
 };

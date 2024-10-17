@@ -1,71 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { fetchUserProfile, fetchAnalyticsData } from '../../services/api'; // Adjust the path based on your file structure
+// src/components/UserProfile.js
+import React, { useEffect, useState } from 'react';
+import { fetchUserProfile } from '../../services/api'; // Make sure this matches the correct function name
 
-const ProfileDetails = () => {
-  const { id } = useParams(); // Get user ID from route params
-  const [user, setUser] = useState(null); // Store user details
-  const [quotas, setQuotas] = useState(null); // Store remaining quotas
-  const [loading, setLoading] = useState(true); // Loading state
-  const [error, setError] = useState(null); // Error state
+const UserProfile = ({ userId }) => {
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!id) {
-        setError("User ID is requiredbjbjb"); // Handle case where ID is not provided
-        setLoading(false);
-        return;
-      }
-
+    const fetchProfileData = async () => {
       try {
-        const userData = await fetchUserProfile(id); // Fetch user profile from API
-        const analyticsData = await fetchAnalyticsData(); // Fetch quotas or analytics data if needed
-
-        setUser(userData); // Assuming userData has the structure you need
-        setQuotas(analyticsData.remainingQuotas); // Assuming analyticsData has the required quota information
+        const data = await fetchUserProfile(userId); // Use the correct function name
+        setProfileData(data);
       } catch (err) {
-        setError("Failed to load user data");
+        setError(err.message || 'Failed to fetch user profile');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
-  }, [id]);
+    fetchProfileData();
+  }, [userId]);
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (loading) {
+    return <p>Loading user profile...</p>;
+  }
+
+  if (error) {
+    return <p style={{ color: 'red' }}>{error}</p>;
+  }
 
   return (
-    <div className="profile-details p-4">
-      <h1 className="text-2xl font-bold mb-4">User Profile: {user.name}</h1>
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold">Account Information</h2>
-        <p><strong>Email:</strong> {user.email}</p>
-        <p><strong>Company:</strong> {user.company}</p>
-        <p><strong>Contact Number:</strong> {user.contactNumber}</p>
-      </div>
+    <div className="user-profile">
+      <h2>User Profile</h2>
+      <h3>Account Information</h3>
+      <p><strong>Name:</strong> {profileData.name}</p>
+      <p><strong>Email:</strong> {profileData.email}</p>
+      <p><strong>Company:</strong> {profileData.company}</p>
+      <p><strong>Contact Number:</strong> {profileData.contactNumber}</p>
+      
+      <h3>Plan Status</h3>
+      <p><strong>Status:</strong> {profileData.planStatus}</p>
+      <p><strong>Expiration Date:</strong> {new Date(profileData.expirationDate).toLocaleDateString()}</p>
+      
+      <h3>Remaining Quotas</h3>
+      <ul>
+        <li><strong>Job Posts:</strong> {profileData.remainingQuotas.jobPosts}</li>
+        <li><strong>Bulk Messages:</strong> {profileData.remainingQuotas.bulkMessages}</li>
+        <li><strong>Candidate Searches:</strong> {profileData.remainingQuotas.candidateSearches}</li>
+      </ul>
 
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold">Plan Information</h2>
-        <p><strong>Plan Name:</strong> {user.plan.name}</p>
-        <p><strong>Expiration Date:</strong> {user.plan.expirationDate}</p>
-      </div>
-
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold">Remaining Quotas</h2>
-        <p><strong>Job Posts Remaining:</strong> {quotas.jobPosts}</p>
-        <p><strong>Candidate Searches Remaining:</strong> {quotas.candidateSearches}</p>
-        <p><strong>Video Interviews Conducted:</strong> {user.usageHistory.videoInterviewsConducted} / {user.plan.videoInterviewLimit}</p>
-      </div>
-
-      <div className="actions mt-4">
-        <Link to={`/user/${user.id}/update-plans`} className="text-blue-500 underline">Update Plan</Link><br />
-        <Link to={`/user/${user.id}/deactivate`} className="text-red-500 underline">Deactivate Account</Link><br />
-        <Link to={`/user/${user.id}/change-quotas`} className="text-green-500 underline">Change Quotas</Link>
-      </div>
+      <h3>Feature Usage</h3>
+      <p><strong>Video Interviews Conducted:</strong> {profileData.featureUsage.videoInterviews} / {profileData.allocated.videoInterviews}</p>
     </div>
   );
 };
 
-export default ProfileDetails;
+export default UserProfile;

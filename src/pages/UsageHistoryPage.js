@@ -6,6 +6,7 @@ import NotificationsLog from '../components/UsageHistory/NotificationsLog';
 import SendNotification from '../components/UsageHistory/SendNotification'; // Correct component name
 import '../../src/assets/styles/UsageHistoryPage.css';
 
+
 const UsageHistoryPage = () => {
   const [activeCard, setActiveCard] = useState(null); // State to track the active card
 
