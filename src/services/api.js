@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api'; // Adjust based on your actual API URL
+// Update API_URL to point to your deployed backend
+const API_URL = 'https://backend-admin-nqf3.onrender.com/api'; // Adjusted for production use
 
 // Error handling utility function
 const handleError = (action, error) => {
@@ -34,6 +35,7 @@ export const fetchUserProfile = async (userId) => {
     handleError('fetching user profile', error);
   }
 };
+
 // Update user plan
 export const updateUserPlan = async (id, planData) => {
   try {
@@ -43,9 +45,6 @@ export const updateUserPlan = async (id, planData) => {
       handleError('updating user plan', error);
   }
 };
-
-
-
 
 // Fetch analytics data
 export const fetchAnalyticsData = async () => {
@@ -112,6 +111,7 @@ export const bulkAssignPlans = async (userIds, selectedPlan) => {
   }
 };
 
+// Renew user plan
 export const renewPlan = async (userId, additionalDays) => {
   try {
     const response = await axios.post(`${API_URL}/renewals/renew`, {
@@ -184,4 +184,3 @@ export const sendBulkNotifications = async (userIds, message, type) => {
     handleError('sending bulk notifications', error);
   }
 };
-
