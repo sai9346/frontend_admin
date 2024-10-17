@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Update API_URL to point to your deployed backend
-const API_URL = 'http://localhost:5000/api'; // Adjusted for production use
+const API_URL = 'https://backend-admin-nqf3.onrender.com/api'; // Adjusted for production use
 
 // Error handling utility function
 const handleError = (action, error) => {
