@@ -9,6 +9,7 @@ import SettingsPage from './pages/SettingsPage';  // Importing SettingsPage
 import { AuthProvider } from './context/AuthContext';
 import RecruiterManagementPage from './pages/RecruiterManagementPage';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import ProfileList from './components/RecruiterManagement/ProfileList'; // Importing ProfileList
 
 function App() {
   return (
@@ -22,6 +23,10 @@ function App() {
           <Route path="/user-management/*" element={<UserManagement />} />
           <Route path="/usage-history" element={<UsageHistoryPage />} />
           <Route path="/settings" element={<SettingsPage />} /> 
+          
+          {/* Adding the recruiter profile list route */}
+          <Route path="/recruiter-profiles" element={<ProfileList />} />
+          
           <Route path="/Recruiter-Management" element={<RecruiterManagementPage />} />
         </Routes>
       </Router>

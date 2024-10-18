@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Update API_URL to point to your deployed backend
-const API_URL = 'https://backend-admin-nqf3.onrender.com/api'; // Adjusted for production use
+const API_URL = 'http://localhost:5000/api'; // Adjust this URL for production use
 
 // Error handling utility function
 const handleError = (action, error) => {
@@ -24,25 +24,33 @@ export const fetchUsers = async () => {
   }
 };
 
-// Fetch user profile by ID
-export const fetchUserProfile = async (userId) => {
-  if (!userId) throw new Error("User ID is required");
-
+// Function to fetch all user profiles (adjusted endpoint)
+export const fetchUserProfiles = async () => {
   try {
-    const response = await axios.get(`${API_URL}/user/${userId}/profile`); // Ensure this URL matches your backend
+    const response = await axios.get(`${API_URL}/user/profiles`); // Adjusted endpoint
     return response.data;
   } catch (error) {
-    handleError('fetching user profile', error);
+    handleError('fetching user profiles1', error);
+  }
+}
+
+// Function to fetch user profile by ID
+export const fetchUserProfile = async (id) => {
+  try {
+    const response = await axios.get(`${API_URL}/user/${id}/profile`); // Adjusted endpoint
+    return response.data; // Return the data part of the response
+  } catch (error) {
+    handleError('fetching user profileq', error);
   }
 };
 
 // Update user plan
 export const updateUserPlan = async (id, planData) => {
   try {
-      const response = await axios.put(`${API_URL}/plans/${id}/update-plan`, planData); // Ensure this URL matches your backend
-      return response.data;
+    const response = await axios.put(`${API_URL}/plans/${id}/update-plan`, planData); // Ensure this URL matches your backend
+    return response.data;
   } catch (error) {
-      handleError('updating user plan', error);
+    handleError('updating user plan', error);
   }
 };
 
@@ -120,8 +128,7 @@ export const renewPlan = async (userId, additionalDays) => {
     });
     return response.data; // Return the data received from the response
   } catch (error) {
-    console.error('Error renewing plan:', error);
-    throw new Error(error.response?.data?.message || 'An error occurred during renewal.');
+    handleError('renewing plan', error);
   }
 };
 
@@ -158,7 +165,7 @@ export const fetchFeatureUsage = async () => {
 // Fetch notifications log
 export const fetchNotifications = async () => {
   try {
-    const response = await axios.get(`${API_URL}/notifications/notificationsLog`);
+    const response = await axios.get(`${API_URL}/notifications/log`); // Adjusted endpoint
     return response.data;
   } catch (error) {
     handleError('fetching notifications', error);
@@ -195,23 +202,27 @@ export const fetchAuditData = async () => {
   }
 };
 
-
-
 // Function to reactivate account
 export const reactivateAccount = async (userId, otp) => {
   try {
-    const response = await axios.post('/accounts/reactivate', { userId, otp });
+    const response = await axios.post(`${API_URL}/accounts/reactivate`, { userId, otp });
     return response.data; // Return the response data (message)
   } catch (error) {
-    throw error.response.data; // Throw error message if failed
+    handleError('reactivating account', error);
   }
 };
+
 // Function to deactivate account
 export const deactivateAccount = async (userId, otp) => {
   try {
-    const response = await axios.post('/accounts/deactivate', { userId, otp });
+    const response = await axios.post(`${API_URL}/accounts/deactivate`, { userId, otp });
     return response.data; // Return the response data (message)
   } catch (error) {
-    throw error.response.data; // Throw error message if failed
+    handleError('deactivating account', error);
   }
+};
+
+export const fetchUserProfileById = async (id) => {
+  const response = await axios.get(`${API_URL}/${id}/profile`);
+  return response.data;
 };

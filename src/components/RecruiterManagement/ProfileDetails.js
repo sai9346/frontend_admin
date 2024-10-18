@@ -1,69 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { fetchUserProfile } from '../../services/api'; // Adjust the path as necessary
+import React from 'react';
+import PropTypes from 'prop-types';
 
-const ProfileDetails = () => {
-  const { id } = useParams(); // Get the recruiter ID from URL params
-  const [recruiter, setRecruiter] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    console.log("Recruiter ID:", id); // Debug log
-    const fetchRecruiterData = async () => {
-      if (!id) {
-        setError('Recruiter ID is not provided');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const recruiterData = await fetchUserProfile(id);
-        console.log("Recruiter Data:", recruiterData); // Log the retrieved data
-        if (!recruiterData) {
-          setError('Recruiter not found');
-        } else {
-          setRecruiter(recruiterData);
-        }
-      } catch (err) {
-        console.error('API error:', err); // Log the error for debugging
-        setError('Error: Recruiter not found or API request failed.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRecruiterData();
-  }, [id]);
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-lg">Loading...</p>
-      </div>
-    );
+const ProfileDetails = ({ profile }) => {
+  if (!profile) {
+    return <div>No profile selected</div>;
   }
 
-  // Error state
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
+  const { name, email, phone, company, remainingQuotas, featureUsage } = profile;
 
-  // Display recruiter details
   return (
-    <div className="p-4 max-w-md mx-auto bg-white rounded shadow-md">
-      <h2 className="text-xl font-semibold mb-4">Profile Details</h2>
-      <p><strong>Name:</strong> {recruiter.name || 'N/A'}</p>
-      <p><strong>Email:</strong> {recruiter.email || 'N/A'}</p>
-      <p><strong>Plan:</strong> {recruiter.plan || 'N/A'}</p>
-      <p><strong>Active:</strong> {recruiter.active ? 'Yes' : 'No'}</p>
+    <div className="profile-details">
+      <h2>Profile Details</h2>
+      <p><strong>Name:</strong> {name || 'N/A'}</p>
+      <p><strong>Email:</strong> {email || 'N/A'}</p>
+      <p><strong>Phone:</strong> {phone || 'N/A'}</p>
+      <p><strong>Company:</strong> {company || 'N/A'}</p>
+
+      {remainingQuotas && (
+        <>
+          <h3>Quotas:</h3>
+          <p><strong>Job Posts Remaining:</strong> {remainingQuotas.jobPosts || 0}</p>
+          <p><strong>Candidate Searches Remaining:</strong> {remainingQuotas.candidateSearches || 0}</p>
+          <p><strong>Bulk Messages Remaining:</strong> {remainingQuotas.bulkMessages || 0}</p>
+        </>
+      )}
+
+      {featureUsage && (
+        <>
+          <h3>Feature Usage:</h3>
+          <p><strong>Video Interviews Conducted:</strong> {featureUsage.videoInterviews || 0}</p>
+        </>
+      )}
     </div>
   );
+};
+
+ProfileDetails.propTypes = {
+  profile: PropTypes.shape({
+    name: PropTypes.string,
+    email: PropTypes.string,
+    phone: PropTypes.string,
+    company: PropTypes.string,
+    remainingQuotas: PropTypes.shape({
+      jobPosts: PropTypes.number,
+      candidateSearches: PropTypes.number,
+      bulkMessages: PropTypes.number,
+    }),
+    featureUsage: PropTypes.shape({
+      videoInterviews: PropTypes.number,
+    }),
+  }),
 };
 
 export default ProfileDetails;
