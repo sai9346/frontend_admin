@@ -3,9 +3,9 @@ import BillingHistory from '../components/UsageHistory/BillingHistory';
 import FeatureUsage from '../components/UsageHistory/FeatureUsage';
 import PlanHistory from '../components/UsageHistory/PlanHistory';
 import NotificationsLog from '../components/UsageHistory/NotificationsLog';
-import SendNotification from '../components/UsageHistory/SendNotification'; // Correct component name
+import SendNotification from '../components/UsageHistory/SendNotification'; 
+import PlanTrends from '../components/UsageHistory/PlanTrends'; // Import PlanTrends
 import '../../src/assets/styles/UsageHistoryPage.css';
-
 
 const UsageHistoryPage = () => {
   const [activeCard, setActiveCard] = useState(null); // State to track the active card
@@ -31,8 +31,10 @@ const UsageHistoryPage = () => {
         return <NotificationsLog />;
       case 'BillingHistory':
         return <BillingHistory />;
-      case 'SendNotification':  // This case must match the card click
+      case 'SendNotification':  
         return <SendNotification />;
+      case 'PlanTrends':  // Add the case for PlanTrends
+        return <PlanTrends />;
       default:
         return null;
     }
@@ -74,9 +76,14 @@ const UsageHistoryPage = () => {
             <p>Review your billing history.</p>
           </div>
 
-          <div className="card" onClick={() => handleCardClick('SendNotification')}> {/* Match this case */}
-            <h2 className="text-xl font-semibold">Send Notification</h2> {/* Correct label */}
+          <div className="card" onClick={() => handleCardClick('SendNotification')}>
+            <h2 className="text-xl font-semibold">Send Notification</h2>
             <p>Send a message to User/Recruiters.</p>
+          </div>
+
+          <div className="card" onClick={() => handleCardClick('PlanTrends')}> {/* Add the new card */}
+            <h2 className="text-xl font-semibold">Plan Trends</h2>
+            <p>View upgrade and downgrade trends.</p>
           </div>
         </div>
       )}

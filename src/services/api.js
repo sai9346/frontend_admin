@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Update API_URL to point to your deployed backend
 //const API_URL = 'http://localhost:5000/api';
-const API_URL = 'https://backend-admin-nqf3.onrender.com/api'; // Adjust this URL for production use
+ const API_URL = 'https://backend-admin-nqf3.onrender.com/api'; // For production use
 
 // Error handling utility function
 const handleError = (action, error) => {
@@ -11,7 +11,7 @@ const handleError = (action, error) => {
     throw new Error(error.response.data.message || error.response.status);
   } else {
     console.error(`Error ${action}: No response received`, error);
-    throw new Error("No response from server");
+    throw new Error('No response from server');
   }
 };
 
@@ -25,30 +25,30 @@ export const fetchUsers = async () => {
   }
 };
 
-// Function to fetch all user profiles (adjusted endpoint)
+// Fetch all user profiles
 export const fetchUserProfiles = async () => {
   try {
-    const response = await axios.get(`${API_URL}/user/profiles`); // Adjusted endpoint
+    const response = await axios.get(`${API_URL}/user/profiles`);
     return response.data;
   } catch (error) {
-    handleError('fetching user profiles1', error);
+    handleError('fetching user profiles', error);
   }
-}
+};
 
-// Function to fetch user profile by ID
+// Fetch user profile by ID
 export const fetchUserProfile = async (id) => {
   try {
-    const response = await axios.get(`${API_URL}/user/${id}/profile`); // Adjusted endpoint
-    return response.data; // Return the data part of the response
+    const response = await axios.get(`${API_URL}/user/${id}/profile`);
+    return response.data;
   } catch (error) {
-    handleError('fetching user profileq', error);
+    handleError('fetching user profile', error);
   }
 };
 
 // Update user plan
 export const updateUserPlan = async (id, planData) => {
   try {
-    const response = await axios.put(`${API_URL}/plans/${id}/update-plan`, planData); // Ensure this URL matches your backend
+    const response = await axios.put(`${API_URL}/plans/${id}/update-plan`, planData);
     return response.data;
   } catch (error) {
     handleError('updating user plan', error);
@@ -78,10 +78,7 @@ export const fetchPlans = async () => {
 // Add a feature to a plan
 export const addFeatureToPlan = async (planId, featureId) => {
   try {
-    const response = await axios.post(`${API_URL}/plans/add-feature`, {
-      planId,
-      featureId // Clear and concise
-    });
+    const response = await axios.post(`${API_URL}/plans/add-feature`, { planId, featureId });
     return response.data;
   } catch (error) {
     handleError('adding feature to plan', error);
@@ -124,10 +121,10 @@ export const bulkAssignPlans = async (userIds, selectedPlan) => {
 export const renewPlan = async (userId, additionalDays) => {
   try {
     const response = await axios.post(`${API_URL}/renewals/renew`, {
-      userId, // Include userId in the request body
-      additionalDays, // Send additionalDays
+      userId,
+      additionalDays,
     });
-    return response.data; // Return the data received from the response
+    return response.data;
   } catch (error) {
     handleError('renewing plan', error);
   }
@@ -166,7 +163,7 @@ export const fetchFeatureUsage = async () => {
 // Fetch notifications log
 export const fetchNotifications = async () => {
   try {
-    const response = await axios.get(`${API_URL}/notifications/log`); // Adjusted endpoint
+    const response = await axios.get(`${API_URL}/notifications/log`);
     return response.data;
   } catch (error) {
     handleError('fetching notifications', error);
@@ -196,34 +193,77 @@ export const sendBulkNotifications = async (userIds, message, type) => {
 // Fetch audit data
 export const fetchAuditData = async () => {
   try {
-    const response = await axios.get(`${API_URL}/audit`); // This should match the backend route
+    const response = await axios.get(`${API_URL}/audit`);
     return response.data;
   } catch (error) {
     handleError('fetching audit data', error);
   }
 };
 
-// Function to reactivate account
+// Reactivate account
 export const reactivateAccount = async (userId, otp) => {
   try {
     const response = await axios.post(`${API_URL}/accounts/reactivate`, { userId, otp });
-    return response.data; // Return the response data (message)
+    return response.data;
   } catch (error) {
     handleError('reactivating account', error);
   }
 };
 
-// Function to deactivate account
-export const deactivateAccount = async (userId, otp) => {
+
+// Generate OTP
+export const generateOTP = async (userId, recipient) => {
   try {
-    const response = await axios.post(`${API_URL}/accounts/deactivate`, { userId, otp });
-    return response.data; // Return the response data (message)
+    const response = await axios.post(`${API_URL}/otp/generate`, {
+      userId,
+      recipient,
+      action: 'deactivate',
+    });
+    return response.data;
+  } catch (error) {
+    handleError('generating OTP', error);
+  }
+};
+
+// Validate OTP
+export const validateOTP = async (userId, otp, recipient) => {
+  try {
+    const response = await axios.post(`${API_URL}/otp/validate`, { userId, otp, recipient, action: 'deactivate' });
+    return response.data;
+  } catch (error) {
+    handleError('validating OTP', error);
+  }
+};
+
+// Deactivate account
+export const deactivateAccount = async (id, otp) => {
+  try {
+    const response = await axios.post(`${API_URL}/accounts/deactivate`, { userId: id, otp });
+    return response.data;
   } catch (error) {
     handleError('deactivating account', error);
   }
 };
 
+
+// Fetch user profile by ID (another method for user profile fetching)
 export const fetchUserProfileById = async (id) => {
-  const response = await axios.get(`${API_URL}/${id}/profile`);
+  try {
+    const response = await axios.get(`${API_URL}/${id}/profile`);
+    return response.data;
+  } catch (error) {
+    handleError('fetching user profile by ID', error);
+  }
+};
+
+
+export const logPlanChange = async (user, oldPlan, newPlan) => {
+  return await axios.post(`${API_URL}/planChangeLog/log`, { user, oldPlan, newPlan });
+};
+
+export const fetchPlanTrends = async (startDate, endDate) => {
+  const response = await axios.get(`${API_URL}/planChangeLog/trends`, {
+      params: { startDate, endDate },
+  });
   return response.data;
 };
