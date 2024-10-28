@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { deactivateAccount, reactivateAccount, fetchUsers, generateOTP, validateOTP } from '../../services/api'; 
-import Swal from 'sweetalert2';
+import { 
+  fetchUsers, 
+  generateOTP, 
+  validateOTP, 
+  deactivateAccount, 
+  reactivateAccount 
+} from '../../services/api'; // Adjust the import path based on your project structure
 
 const ManageRecruiters = () => {
   const [recruiters, setRecruiters] = useState([]);
@@ -9,141 +14,198 @@ const ManageRecruiters = () => {
   const [selectedRecruiter, setSelectedRecruiter] = useState(null);
   const [actionType, setActionType] = useState('');
   const [loading, setLoading] = useState(true);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' });
+
+  const adminEmail = "b20cn032@kitsw.ac.in";
 
   useEffect(() => {
-    const loadRecruiters = async () => {
-      setLoading(true);
-      try {
-        const result = await fetchUsers();
-        setRecruiters(result);
-      } catch (error) {
-        Swal.fire('Error', 'Failed to fetch recruiters', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
     loadRecruiters();
   }, []);
 
-  const handleOpenOtpModal = async (recruiter, action) => {
-    const confirmation = await Swal.fire({
-      title: 'Are you sure?',
-      text: `You are about to ${action === 'deactivate' ? 'deactivate' : 'reactivate'} this account.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, proceed!'
-    });
+  const loadRecruiters = async () => {
+    setLoading(true);
+    try {
+      const result = await fetchUsers();
+      setRecruiters(result);
+    } catch (error) {
+      showMessage('Failed to fetch recruiters', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (confirmation.isConfirmed) {
+  const showMessage = (text, type) => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage({ text: '', type: '' }), 1000);
+  };
+
+  const handleOpenOtpModal = async (recruiter, action) => {
+    if (window.confirm(`Are you sure you want to ${action} this account?`)) {
       setSelectedRecruiter(recruiter);
       setActionType(action);
+      setShowOtpModal(true);
+      
+      setOtpLoading(true);
       try {
-        await generateOTP(recruiter.id, recruiter.email);
-        Swal.fire('Info', 'OTP has been sent to the admin. Please check your email.', 'info');
-        setShowOtpModal(true);
+        await generateOTP({ recipient: adminEmail, userId: recruiter.id, action });
+        showMessage('OTP sent to email', 'success');
       } catch (error) {
-        Swal.fire('Error', error.message || 'Failed to send OTP', 'error');
+        showMessage('Failed to send OTP', 'error');
+        setShowOtpModal(false);
+      } finally {
+        setOtpLoading(false);
       }
     }
   };
 
-  const handleCloseOtpModal = () => {
-    setShowOtpModal(false);
-    setOtp('');
-    setSelectedRecruiter(null);
-    setActionType('');
-  };
-
   const handleAction = async () => {
-    if (!selectedRecruiter || !otp) return;
+    if (!otp || processing) return;
 
+    setProcessing(true);
     try {
-      const isOtpValid = await validateOTP(selectedRecruiter.id, otp, selectedRecruiter.email);
-      if (isOtpValid) {
-        if (actionType === 'deactivate') {
-          const response = await deactivateAccount(selectedRecruiter.id, otp);
-          Swal.fire('Success', response.message, 'success');
-          setRecruiters(recruiters.filter((rec) => rec.id !== selectedRecruiter.id));
-        } else if (actionType === 'reactivate') {
-          const response = await reactivateAccount(selectedRecruiter.id, otp);
-          Swal.fire('Success', response.message, 'success');
-          // Optionally refetch the recruiters list or update state accordingly.
-          // Load the recruiters again after reactivation
-          const updatedRecruiters = await fetchUsers();
-          setRecruiters(updatedRecruiters);
-        }
-        handleCloseOtpModal();
+      const isValid = await validateOTP({ otp, userId: selectedRecruiter.id });
+
+      if (isValid) {
+        const response = actionType === 'deactivate' 
+          ? await deactivateAccount(selectedRecruiter.id)
+          : await reactivateAccount(selectedRecruiter.id);
+
+        showMessage(`Account successfully ${actionType}d!`, 'success');
+
+        setRecruiters(prev =>
+          prev.map(rec =>
+            rec.id === selectedRecruiter.id
+              ? { ...rec, active: actionType !== 'deactivate' }
+              : rec
+          )
+        );
+
+        setShowOtpModal(false);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
-        Swal.fire('Error', 'Invalid OTP, please try again.', 'error');
+        showMessage('Invalid OTP', 'error');
       }
     } catch (error) {
-      Swal.fire('Error', error.message || 'Error processing the request.', 'error');
+      showMessage('Failed to process request', 'error');
+    } finally {
+      setProcessing(false);
+      setOtp('');
     }
   };
 
   return (
-    <div>
-      <h2 className="text-xl">Manage Recruiter Accounts</h2>
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-6">Manage Recruiter Accounts</h2>
+      
+      {/* Message Toast */}
+      {message.text && (
+        <div 
+          className={`fixed top-4 right-4 p-4 rounded shadow-lg ${
+            message.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          } text-white`}
+        >
+          {message.text}
+        </div>
+      )}
+      
       {loading ? (
-        <p>Loading recruiters...</p>
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin">Loading...</div>
+        </div>
       ) : (
-        <table className="min-w-full bg-white">
-          <thead>
-            <tr>
-              <th className="py-2">Name</th>
-              <th className="py-2">Plan</th>
-              <th className="py-2">Email</th>
-              <th className="py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recruiters.map((recruiter, index) => (
-              <tr key={`${recruiter.id}-${index}`} className="border-b">
-                <td className="py-2">{recruiter.name}</td>
-                <td className="py-2">{recruiter.plan}</td>
-                <td className="py-2">{recruiter.email}</td>
-                <td className="py-2 flex space-x-2">
-                  <button
-                    onClick={() => handleOpenOtpModal(recruiter, 'deactivate')}
-                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition ease-in-out duration-200"
-                  >
-                    Deactivate
-                  </button>
-                  <button
-                    onClick={() => handleOpenOtpModal(recruiter, 'reactivate')}
-                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition ease-in-out duration-200"
-                  >
-                    Reactivate
-                  </button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="p-3 text-left">Name</th>
+                <th className="p-3 text-left">Email</th>
+                <th className="p-3 text-left">Company</th>
+                <th className="p-3 text-left">Status</th>
+                <th className="p-3 text-left">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {recruiters.map((recruiter) => (
+                <tr key={recruiter.id} className="border-b">
+                  <td className="p-3">{recruiter.name}</td>
+                  <td className="p-3">{recruiter.email}</td>
+                  <td className="p-3">{recruiter.company}</td>
+                  <td className="p-3">
+                    <span className={`px-2 py-1 rounded-full text-sm ${
+                      recruiter.active 
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {recruiter.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <button
+                      onClick={() => handleOpenOtpModal(
+                        recruiter,
+                        recruiter.active ? 'deactivate' : 'reactivate'
+                      )}
+                      className={`px-4 py-2 rounded ${
+                        recruiter.active 
+                          ? 'bg-red-500 text-white hover:bg-red-600'
+                          : 'bg-blue-500 text-white hover:bg-blue-600'
+                      }`}
+                    >
+                      {recruiter.active ? 'Deactivate' : 'Reactivate'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {/* OTP Modal */}
       {showOtpModal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex justify-center items-center">
-          <div className="bg-white p-4 rounded shadow-md">
-            <h3 className="text-lg mb-4">
-              Enter OTP for {selectedRecruiter?.name} ({actionType === 'deactivate' ? 'Deactivation' : 'Reactivation'})
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h3 className="text-lg font-semibold mb-4">
+              Enter OTP to {actionType} account
             </h3>
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              placeholder="Enter OTP"
-              className="border p-2 mb-2 w-full"
-            />
-            <button onClick={handleAction} className="bg-blue-500 text-white px-4 py-2 mr-2">
-              Verify OTP
-            </button>
-            <button onClick={handleCloseOtpModal} className="bg-gray-500 text-white px-4 py-2">
-              Cancel
-            </button>
+            
+            {otpLoading ? (
+              <div className="flex justify-center p-4">
+                <div className="animate-spin">Loading...</div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  maxLength={6}
+                />
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setShowOtpModal(false);
+                      setOtp('');
+                    }}
+                    className="px-4 py-2 border rounded text-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAction}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

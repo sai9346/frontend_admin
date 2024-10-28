@@ -1,6 +1,9 @@
+// src/components/RecruiterManagement/ProfileList.js
 import React, { useEffect, useState } from 'react';
 import { fetchUserProfiles } from '../../services/api';
-import ProfileDetails from './ProfileDetails';
+//import ProfileDetails from './ProfileDetails';
+import ProfileModal from './ProfileModal';
+import '../../assets/styles/ProfileList.css'; // Add your CSS import
 
 const ProfileList = () => {
   const [profiles, setProfiles] = useState([]);
@@ -28,6 +31,10 @@ const ProfileList = () => {
     setSelectedProfile(profile);
   };
 
+  const handleCloseModal = () => {
+    setSelectedProfile(null); // Close the modal by resetting selected profile
+  };
+
   if (loading) return <div>Loading profiles...</div>;
   if (error) return <div>{error}</div>;
 
@@ -37,15 +44,19 @@ const ProfileList = () => {
         <h2>User Profiles</h2>
         <ul>
           {profiles.map((profile) => (
-            <li key={profile._id} onClick={() => handleProfileClick(profile._id)}>
-              {profile.name} - {profile.email}
+            <li key={profile._id}>
+              <div>
+                <strong>{profile.name}</strong>
+                <p>{profile.email}</p>
+              </div>
+              <button onClick={() => handleProfileClick(profile._id)}>View</button>
             </li>
           ))}
         </ul>
       </div>
-      <div className="profile-details">
-        <ProfileDetails profile={selectedProfile} />
-      </div>
+      {selectedProfile && (
+        <ProfileModal profile={selectedProfile} onClose={handleCloseModal} />
+      )}
     </div>
   );
 };

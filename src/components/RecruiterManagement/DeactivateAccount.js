@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { deactivateAccount, fetchUsers, generateOTP, validateOTP } from '../../services/api'; 
+import { deactivateAccount, reactivateAccount, fetchUsers, generateOTP, validateOTP } from '../../services/api'; 
 import Swal from 'sweetalert2'; 
 
 const DeactivateAccount = () => {
@@ -16,6 +16,7 @@ const DeactivateAccount = () => {
         const result = await fetchUsers();
         setRecruiters(result);
       } catch (error) {
+        console.error('Error fetching recruiters:', error);
         Swal.fire('Error', 'Failed to fetch recruiters', 'error');
       }
     };
@@ -27,17 +28,16 @@ const DeactivateAccount = () => {
     setShowConfirmModal(true); 
   };
 
-  const handleConfirmDeactivate = async () => {
-    if (!selectedRecruiter) return; // Ensure there's a selected recruiter
-
+  const handleConfirmAction = async () => {
+    if (!selectedRecruiter) return; 
     setShowConfirmModal(false); 
+
     try {
       const response = await generateOTP(selectedRecruiter.id, selectedRecruiter.email);
-      
-      if (response.success) {
+      if (response && response.success) {
         Swal.fire('Info', 'OTP has been sent to the admin. Please check your email.', 'info');
-        setShowOtpModal(true); // Show OTP modal
-        setOtp(''); // Clear OTP input when opening modal
+        setShowOtpModal(true);
+        setOtp('');
       } else {
         throw new Error(response.message || 'Failed to send OTP');
       }
@@ -53,22 +53,30 @@ const DeactivateAccount = () => {
     setSelectedRecruiter(null);
   };
 
-  const handleDeactivate = async () => {
+  const handleStatusChange = async () => {
     if (!selectedRecruiter || !otp) return;
 
     setLoading(true);
     try {
       const isOtpValid = await validateOTP(selectedRecruiter.id, otp, selectedRecruiter.email);
       if (isOtpValid) {
-        const response = await deactivateAccount(selectedRecruiter.id, otp);
+        const response = selectedRecruiter.status === 'Active'
+          ? await deactivateAccount(selectedRecruiter.id, otp)
+          : await reactivateAccount(selectedRecruiter.id, otp);
+
         Swal.fire('Success', response.message, 'success');
-        setRecruiters(recruiters.filter((rec) => rec.id !== selectedRecruiter.id));
+        setRecruiters(recruiters.map((rec) => 
+          rec.id === selectedRecruiter.id 
+            ? { ...rec, status: rec.status === 'Active' ? 'Inactive' : 'Active' }
+            : rec
+        ));
         handleCloseOtpModal();
       } else {
         Swal.fire('Error', 'Invalid OTP, please try again.', 'error');
       }
     } catch (error) {
-      Swal.fire('Error', error.message || 'Error deactivating account.', 'error');
+      console.error('Error processing status change:', error);
+      Swal.fire('Error', error.message || 'Error processing the request.', 'error');
     } finally {
       setLoading(false);
     }
@@ -76,13 +84,14 @@ const DeactivateAccount = () => {
 
   return (
     <div>
-      <h2 className="text-xl">Deactivate Recruiter Accounts</h2>
+      <h2 className="text-xl">Manage Recruiter Accounts</h2>
       <table className="min-w-full bg-white">
         <thead>
           <tr>
             <th className="py-2">Name</th>
             <th className="py-2">Plan</th>
             <th className="py-2">Email</th>
+            <th className="py-2">Status</th>
             <th className="py-2">Actions</th>
           </tr>
         </thead>
@@ -92,12 +101,13 @@ const DeactivateAccount = () => {
               <td className="py-2">{recruiter.name}</td>
               <td className="py-2">{recruiter.plan}</td>
               <td className="py-2">{recruiter.email}</td>
+              <td className="py-2">{recruiter.status || 'Unknown'}</td>
               <td className="py-2">
                 <button
                   onClick={() => handleOpenConfirmModal(recruiter)}
-                  className="bg-red-500 text-white px-4 py-2"
+                  className={`px-4 py-2 ${recruiter.status === 'Active' ? 'bg-red-500' : 'bg-green-500'} text-white`}
                 >
-                  Deactivate
+                  {recruiter.status === 'Active' ? 'Deactivate' : 'Reactivate'}
                 </button>
               </td>
             </tr>
@@ -105,12 +115,13 @@ const DeactivateAccount = () => {
         </tbody>
       </table>
 
-      {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex justify-center items-center">
           <div className="bg-white p-4 rounded shadow-md">
-            <h3 className="text-lg mb-4">Are you sure you want to deactivate {selectedRecruiter?.name}?</h3>
-            <button onClick={handleConfirmDeactivate} className="bg-red-500 text-white px-4 py-2 mr-2">
+            <h3 className="text-lg mb-4">
+              Are you sure you want to {selectedRecruiter?.status === 'Active' ? 'deactivate' : 'reactivate'} {selectedRecruiter?.name}?
+            </h3>
+            <button onClick={handleConfirmAction} className="bg-red-500 text-white px-4 py-2 mr-2">
               Yes
             </button>
             <button onClick={() => setShowConfirmModal(false)} className="bg-gray-500 text-white px-4 py-2">
@@ -120,7 +131,6 @@ const DeactivateAccount = () => {
         </div>
       )}
 
-      {/* OTP Modal */}
       {showOtpModal && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex justify-center items-center">
           <div className="bg-white p-4 rounded shadow-md">
@@ -133,7 +143,7 @@ const DeactivateAccount = () => {
               className="border p-2 mb-2 w-full"
             />
             <button 
-              onClick={handleDeactivate} 
+              onClick={handleStatusChange} 
               className="bg-red-500 text-white px-4 py-2 mr-2"
               disabled={loading}
             >

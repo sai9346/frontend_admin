@@ -17,22 +17,28 @@ const PlanHistory = () => {
   }, []);
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Plan Usage Reports</h2>
-      <table className="min-w-full bg-white border border-gray-300">
+    <div>
+      <h2>Plan Usage Reports</h2>
+      <table>
         <thead>
           <tr>
-            <th className="py-2 px-4 border-b">Plan Name</th>
-            <th className="py-2 px-4 border-b">Number of Users</th>
-            <th className="py-2 px-4 border-b">Revenue</th>
+            <th>Plan Name</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Number of Users</th>
+            <th>Revenue</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           {planUsage.map((plan, index) => (
             <tr key={index}>
-              <td className="py-2 px-4 border-b">{plan.plan}</td>
-              <td className="py-2 px-4 border-b">{plan.count}</td>
-              <td className="py-2 px-4 border-b">${plan.revenue}</td>
+              <td>{plan.plan}</td>
+              <td>{new Date(plan.startDate).toLocaleDateString()}</td>
+              <td>{new Date(plan.endDate).toLocaleDateString()}</td>
+              <td>{plan.count}</td>
+              <td>${plan.revenue}</td>
+              <td>{plan.isActive ? 'Active' : 'Expired'}</td> {/* Example for status */}
             </tr>
           ))}
         </tbody>

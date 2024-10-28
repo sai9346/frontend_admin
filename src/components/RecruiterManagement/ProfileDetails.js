@@ -1,9 +1,11 @@
+// src/components/ProfileDetails.js
 import React from 'react';
 import PropTypes from 'prop-types';
+import '../../assets/styles/ProfileDetails.css'; // Import CSS file for styling
 
 const ProfileDetails = ({ profile }) => {
   if (!profile) {
-    return <div>No profile selected</div>;
+    return <div className="no-profile">No profile selected</div>;
   }
 
   const { name, email, phone, company, remainingQuotas, featureUsage } = profile;

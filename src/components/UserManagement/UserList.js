@@ -43,8 +43,8 @@ const UserList = () => {
     // Fetch users from API
     // For demo, using dummy data
     const fetchedUsers = [
-      { id: 1, name: 'John Doe', email: 'john@example.com', plan: 'Premium' },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com', plan: 'Basic' },
+      //{ id: 1, name: 'John Doe', email: 'john@example.com', plan: 'Premium' },
+      //{ id: 2, name: 'Jane Smith', email: 'jane@example.com', plan: 'Basic' },
       // Add more dummy users
     ];
     setUsers(fetchedUsers);
