@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchUsers, fetchPlans, fetchAnalyticsData } from '../services/api'; // Import your API functions
+import { fetchUsers, fetchAnalyticsData } from '../services/api'; // Import your API functions
 import { UserCircle, Users, CreditCard, BarChart2, Settings, LogOut, Menu, Home } from 'lucide-react';
 import UsageHistoryPage from '../pages/UsageHistoryPage';
 import UserManagement from '../pages/UserManagement';
@@ -54,19 +54,18 @@ const Sidebar = ({ activeItem, setActiveItem, isOpen, toggleSidebar }) => {
 const DashboardContent = ({ activeItem }) => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [activeRecruiters, setActiveRecruiters] = useState(0);
-  const [premiumPlans, setPremiumPlans] = useState(0);
+  const [inactiveUsers, setInactiveUsers] = useState(0);
 
   // Fetch data from the backend
   useEffect(() => {
     const fetchData = async () => {
       try {
         const users = await fetchUsers();
-        const plans = await fetchPlans();
         const analytics = await fetchAnalyticsData();
 
         setTotalUsers(users.length); // Assuming users is an array
         setActiveRecruiters(analytics.activeRecruiters); // Adjust based on your backend response
-        setPremiumPlans(plans.filter(plan => plan.type === 'premium').length); // Example filter for premium plans
+        setInactiveUsers(analytics.inactiveUsers); // Assuming backend returns inactive user count in analytics data
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -91,8 +90,8 @@ const DashboardContent = ({ activeItem }) => {
               <p className="text-2xl font-bold">{activeRecruiters}</p>
             </div>
             <div className="bg-white p-4 rounded shadow">
-              <h3 className="text-lg font-semibold mb-2">Premium Plans</h3>
-              <p className="text-2xl font-bold">{premiumPlans}</p>
+              <h3 className="text-lg font-semibold mb-2">Inactive Users</h3>
+              <p className="text-2xl font-bold">{inactiveUsers}</p>
             </div>
           </div>
         </>
@@ -125,7 +124,6 @@ const AdminDashboard = () => {
       <div className="flex-1 overflow-auto">
         <DashboardContent activeItem={activeItem} />
       </div>
-    
     </div>
   );
 };

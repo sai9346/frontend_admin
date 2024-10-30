@@ -3,7 +3,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 
 // Set up the base URL for your API
-export const API_URL = 'https://backend-admin-nqf3.onrender.com/api'; // Change this for production
+export const API_URL = 'http://localhost:5000/api'; // Change this for production
 
 // Error handling utility function
 const handleError = (action, error) => {
@@ -18,8 +18,8 @@ const handleError = (action, error) => {
   }
 };
 
+// Billing service functions
 export const billingService = {
-  // Fetch all billing records
   async fetchBillingHistory() {
     try {
       const response = await axios.get(`${API_URL}/billing`);
@@ -29,7 +29,6 @@ export const billingService = {
     }
   },
 
-  // Fetch billing by ID
   async getBillingById(id) {
     try {
       const response = await axios.get(`${API_URL}/billing/${id}`);
@@ -39,7 +38,6 @@ export const billingService = {
     }
   },
 
-  // Create new billing record
   async createBilling(billingData) {
     try {
       const response = await axios.post(`${API_URL}/billing`, billingData);
@@ -47,21 +45,57 @@ export const billingService = {
     } catch (error) {
       handleError('creating billing record', error);
     }
+  },
+
+  async updateBilling(id, billingData) {
+    try {
+      const response = await axios.patch(`${API_URL}/billing/${id}`, billingData);
+      return response.data;
+    } catch (error) {
+      handleError('updating billing record', error);
+    }
   }
 };
 
-// Function to send notifications
-export const sendNotification = async (email, subject, text) => {
+// Assign a new plan to a user
+export const assignChangePlan = async (userId, newPlanId) => {
   try {
-    const response = await axios.post(`${API_URL}/notifications`, {
-      email,
-      subject,
-      text,
-    });
+    const response = await axios.post(`${API_URL}/plans/assign`, { userId, newPlanId });
     return response.data;
   } catch (error) {
-    handleError('sending notification', error);
+    handleError('assigning new plan', error);
   }
+};
+
+// Bulk assign plans to multiple users
+export const bulkAssignPlans = async (userIds, newPlanId) => {
+  try {
+    const response = await axios.post(`${API_URL}/plans/bulk-assign`, { userIds, newPlanId });
+    return response.data;
+  } catch (error) {
+    handleError('bulk assigning plans', error);
+  }
+};
+
+// Notification service for sending and fetching notifications
+export const notificationService = {
+  async sendNotification(userId, message) {
+    try {
+      const response = await axios.post(`${API_URL}/notifications/send`, { userId, message });
+      return response.data;
+    } catch (error) {
+      handleError('sending notification', error);
+    }
+  },
+
+  async fetchUserNotifications(userId) {
+    try {
+      const response = await axios.get(`${API_URL}/notifications/${userId}`);
+      return response.data;
+    } catch (error) {
+      handleError('fetching user notifications', error);
+    }
+  },
 };
 
 // Fetch all users
@@ -114,38 +148,38 @@ export const fetchAnalyticsData = async () => {
   }
 };
 
-// Fetch all plans
 export const fetchPlans = async () => {
+  const response = await axios.get(`${API_URL}/plans`); // Adjust endpoint accordingly
+  return response.data;
+};
+
+// Fetch features for a specific plan
+export const fetchFeatures = async (planId) => {
   try {
-    const response = await axios.get(`${API_URL}/plans`);
-    return response.data;
+      const response = await fetch(`${API_URL}/plans/${planId}/features`); // Fetch features for the specific plan ID
+      if (!response.ok) {
+          throw new Error('Failed to fetch features');
+      }
+      const data = await response.json();
+      return data; // Return the features data
   } catch (error) {
-    handleError('fetching plans', error);
+      console.error('Error fetching features:', error);
+      throw error; // Propagate the error
   }
 };
 
-// Add a feature to a plan
-export const addFeatureToPlan = async (planId, featureId) => {
-  try {
-    const response = await axios.post(`${API_URL}/plans/add-feature`, { planId, featureId });
-    return response.data;
-  } catch (error) {
-    handleError('adding feature to plan', error);
-  }
+
+export const addFeatureToPlan = async (planId, feature) => {
+  const response = await axios.post(`${API_URL}/plans/add-feature`, { planId, feature });
+  return response.data;
 };
 
-// Remove a feature from a plan
 export const removeFeatureFromPlan = async (planId, featureId) => {
-  try {
-    const response = await axios.delete(`${API_URL}/plans/remove-feature`, {
-      data: { planId, featureId },
-    });
-    return response.data;
-  } catch (error) {
-    handleError('removing feature', error);
-  }
-};
-
+  const response = await axios.delete(`${API_URL}/plans/remove-feature`, {
+    data: { planId, featureId },
+  });
+  return response.data;
+}
 // Delete a plan
 export const deletePlan = async (planId) => {
   try {
@@ -155,8 +189,6 @@ export const deletePlan = async (planId) => {
     handleError('deleting plan', error);
   }
 };
-
-
 
 // Renew user plan
 export const renewPlan = async (userId, additionalDays) => {
@@ -268,187 +300,120 @@ export const validateOTP = async (userId, otp, recipient) => {
 // Deactivate account
 export const deactivateAccount = async (id, otp) => {
   try {
-    const response = await axios.post(`${API_URL}/accounts/deactivate`, { userId: id, otp });
+    const response = await axios.post(`${API_URL}/accounts/deactivate`, { id, otp });
     return response.data;
   } catch (error) {
-    handleError('deactivating account', error);
+    console.error("Error deactivating account:", error.response || error.message || error);
+    Swal.fire('Error', 'Failed to deactivate account', 'error');
+    throw new Error('Failed to deactivate account');
   }
 };
 
-// Log plan change
-export const logPlanChange = async (user, oldPlan, newPlan) => {
+// Fetch account details
+export const fetchAccountDetails = async (id) => {
   try {
-    const response = await axios.post(`${API_URL}/planChangeLog/log`, { user, oldPlan, newPlan });
+    const response = await axios.get(`${API_URL}/accounts/${id}`);
     return response.data;
   } catch (error) {
-    handleError('logging plan change', error);
-  }
-};
-
-// Example to handle billing renewals
-export const handleBillingRenewals = async (userId, billingData) => {
-  try {
-    const response = await axios.post(`${API_URL}/billing/renew`, { userId, ...billingData });
-    return response.data;
-  } catch (error) {
-    handleError('handling billing renewals', error);
-  }
-};
-
-// Example API function to fetch system metrics
-export const fetchSystemMetrics = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/metrics/system`);
-    return response.data;
-  } catch (error) {
-    handleError('fetching system metrics', error);
-  }
-};
-
-// Function to create a new feature
-export const createFeature = async (featureData) => {
-  try {
-    const response = await axios.post(`${API_URL}/features`, featureData);
-    return response.data;
-  } catch (error) {
-    handleError('creating feature', error);
-  }
-};
-
-// Function to delete a feature
-export const deleteFeature = async (featureId) => {
-  try {
-    const response = await axios.delete(`${API_URL}/features/${featureId}`);
-    return response.data;
-  } catch (error) {
-    handleError('deleting feature', error);
-  }
-};
-
-// Function to update a feature
-export const updateFeature = async (featureId, featureData) => {
-  try {
-    const response = await axios.patch(`${API_URL}/features/${featureId}`, featureData);
-    return response.data;
-  } catch (error) {
-    handleError('updating feature', error);
+    handleError('fetching account details', error);
   }
 };
 
 
-// Assign or change plan for a single user
-export const assignChangePlan = async (userId, plan) => {
+
+export const sendOtp = async (adminId, recipient) => {
+  return await axios.post(`${API_URL}/otp/generate`, { adminId, recipient });
+};
+
+export const verifyOtp = async (otp, adminId, recipient) => {
+  return await axios.post(`${API_URL}/otp/validate`, { otp, adminId, recipient });
+};
+
+// Create User
+export const createUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/users/assign-plan`, { userId, plan });
-    return response.data;
+      const response = await axios.post(`${API_URL}/users`, userData);
+      return response;
   } catch (error) {
-    console.error("Error assigning/changing plan:", error);
+      console.error('Error creating user:', error);
+      throw error;
+  }
+};
+
+// Update User Quotas
+export const updateUserQuotas = async (userId, quotas) => {
+  try {
+      const response = await axios.put(`${API_URL}/users/${userId}/quotas`, { quotas });
+      return response;
+  } catch (error) {
+      console.error('Error updating user quotas:', error);
+      throw error;
+  }
+};
+
+// Get All Users
+export const getAllUsers = async () => {
+  try {
+      const response = await axios.get(`${API_URL}/users`);
+      return response;
+  } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+  }
+};
+// Function to update a plan
+export const updatePlan = async (id, updatedPlan) => {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updatedPlan),
+  });
+  if (!response.ok) throw new Error('Failed to update plan');
+  return await response.json();
+};
+
+// // Fetch the expiring plans from the API
+// export const fetchExpiringPlans = async () => {
+//   const response = await fetch('${API_URL}/plans/expiring'); // Replace with your actual API endpoint
+//   if (!response.ok) {
+//     throw new Error('Network response was not ok');
+//   }
+//   return response.json();
+// };
+
+export const fetchUpcomingExpirations = async () => {
+  try {
+      const response = await axios.get(`${API_URL}/plans/upcoming-expirations`);
+      return response.data;
+  } catch (error) {
+      console.error('Error fetching upcoming expirations:', error);
+      throw error;
+  }
+};
+ 
+// In api.js
+
+export const updateFeatureQuotas = async (userId, quotas) => {
+  try {
+    const response = await fetch(`${API_URL}/users/${userId}/updateQuotas`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(quotas),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to update quotas');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating quotas:", error);
     throw error;
   }
 };
 
-// Bulk assign plans to multiple users
-export const bulkAssignPlans = async (userIds, plan) => {
-  try {
-    const response = await axios.post(`${API_URL}/users/bulk-assign-plans`, { userIds, plan });
-    return response.data;
-  } catch (error) {
-    console.error("Error bulk assigning plans:", error);
-    throw error;
-  }
-};
-// Update a plan
-export const updatePlan = async (planId, planData) => {
-  try {
-    const response = await axios.patch(`${API_URL}/plans/${planId}`, planData);
-    return response.data;
-  } catch (error) {
-    handleError('updating plan', error);
-  }
-};
 
-// Add a feature to a plan
-export const addFeature = async (planId, featureData) => {
-  try {
-    const response = await axios.post(`${API_URL}/plans/${planId}/add-feature`, featureData);
-    return response.data;
-  } catch (error) {
-    handleError('adding feature to plan', error);
-  }
-};
-
-// Remove a feature from a plan
-export const removeFeature = async (planId, featureId) => {
-  try {
-    const response = await axios.delete(`${API_URL}/plans/${planId}/remove-feature/${featureId}`);
-    return response.data;
-  } catch (error) {
-    handleError('removing feature from plan', error);
-  }
-};
-
-
-
-export const planService = {
-  getAllPlans: async () => {
-    try {
-      const response = await axios.get(API_URL);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching plans:', error);
-      throw error;
-    }
-  },
-
-  createPlan: async (planData) => {
-    try {
-      const response = await axios.post(API_URL, planData);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating plan:', error);
-      throw error;
-    }
-  },
-
-  updatePlan: async (id, planData) => {
-    try {
-      const response = await axios.put(`${API_URL}/${id}/update-plan`, planData);
-      return response.data;
-    } catch (error) {
-      console.error('Error updating plan:', error);
-      throw error;
-    }
-  },
-
-  deletePlan: async (id) => {
-    try {
-      const response = await axios.delete(`${API_URL}/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error deleting plan:', error);
-      throw error;
-    }
-  },
-
-  addFeature: async (planId, feature) => {
-    try {
-      const response = await axios.post(`${API_URL}/add-feature`, { planId, feature });
-      return response.data;
-    } catch (error) {
-      console.error('Error adding feature:', error);
-      throw error;
-    }
-  },
-
-  removeFeature: async (planId, featureId) => {
-    try {
-      const response = await axios.delete(`${API_URL}/remove-feature`, {
-        data: { planId, featureId }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error removing feature:', error);
-      throw error;
-    }
-  }
-};

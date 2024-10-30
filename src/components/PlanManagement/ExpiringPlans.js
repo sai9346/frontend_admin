@@ -1,131 +1,124 @@
+// src/components/ExpiringPlans.js
 import React, { useState, useEffect } from 'react';
-import { fetchUserProfile } from '../../services/api'; // Ensure this function is correctly implemented
-import Modal from 'react-modal';
+import { Calendar } from 'lucide-react';
+import { fetchUsers } from '../../services/api';
+
+// Updated Card component with full width on larger screens
+const Card = ({ children, className }) => (
+  <div className={`w-full max-w-7xl mx-auto p-6 shadow-md border rounded-md ${className}`}>
+    {children}
+  </div>
+);
+
+const CardHeader = ({ children }) => <div className="card-header">{children}</div>;
+const CardTitle = ({ children }) => <h2 className="card-title">{children}</h2>;
+const CardContent = ({ children }) => <div className="card-content">{children}</div>;
+const Alert = ({ variant, children }) => (
+  <div className={`alert ${variant === 'destructive' ? 'alert-danger' : 'alert-default'}`}>
+    {children}
+  </div>
+);
+const AlertDescription = ({ children }) => <p className="alert-description">{children}</p>;
 
 const ExpiringPlans = () => {
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [newExpirationDate, setNewExpirationDate] = useState('');
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [recruiterDetails, setRecruiterDetails] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [filterDays, setFilterDays] = useState(30);
+  const [filterType, setFilterType] = useState('all');
 
-  // Fetch expiring plans on component mount
   useEffect(() => {
-    const fetchExpiringPlans = async () => {
-      try {
-        const response = await fetch('/api/plans/expiring'); // Replace with your actual API endpoint
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const fetchedPlans = await response.json();
-        setPlans(fetchedPlans);
-      } catch (err) {
-        console.error("Error fetching plans:", err);
-        setError("Failed to load plans. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
+    const loadData = async () => {
+      const userData = await fetchUsers();
+      setUsers(userData);
     };
-
-    fetchExpiringPlans();
+    loadData();
   }, []);
 
-  // Fetch recruiter details when a plan is selected for renewal
-  const fetchRecruiterDetails = async (recruiterId) => {
-    try {
-      const userDetails = await fetchUserProfile(recruiterId); // Ensure this API call is correct
-      setRecruiterDetails(userDetails);
-    } catch (err) {
-      console.error("Error fetching recruiter details:", err);
-      setError("Failed to load recruiter details.");
-    }
+  const calculateDaysRemaining = (expiryDate) => {
+    const today = new Date();
+    const expiry = new Date(expiryDate);
+    const diffTime = expiry - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  // Open modal and load recruiter details for the selected plan
-  const handleRenewPlan = (plan) => {
-    setSelectedPlan(plan);
-    setNewExpirationDate('');
-    setModalIsOpen(true);
-    fetchRecruiterDetails(plan.recruiterId);
+  const getExpiryStatus = (daysRemaining) => {
+    if (daysRemaining <= 7) return 'critical';
+    if (daysRemaining <= 30) return 'warning';
+    return 'normal';
   };
 
-  // Save new expiration date and close modal
-  const handleSave = async () => {
-    if (newExpirationDate) {
-      try {
-        // Simulate updating the expiration date
-        const updatedPlans = plans.map((plan) =>
-          plan.id === selectedPlan.id ? { ...plan, expirationDate: newExpirationDate } : plan
-        );
-        setPlans(updatedPlans);
-        setModalIsOpen(false);
-      } catch (err) {
-        console.error("Error renewing plan:", err);
-        setError("Failed to renew the plan. Please try again.");
-      }
-    }
-  };
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  const filteredUsers = users.filter(user => {
+    const daysRemaining = calculateDaysRemaining(user.planExpiry);
+    const typeMatch = filterType === 'all' || user.type === filterType;
+    return daysRemaining <= filterDays && typeMatch;
+  });
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Expiring Plans</h2>
-      <table className="min-w-full bg-white border border-gray-300">
-        <thead>
-          <tr>
-            <th className="py-2 px-4 border-b">Recruiter Name</th>
-            <th className="py-2 px-4 border-b">Plan Name</th>
-            <th className="py-2 px-4 border-b">Expiration Date</th>
-            <th className="py-2 px-4 border-b">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {plans.map(plan => (
-            <tr key={plan.id}>
-              <td className="py-2 px-4 border-b">{plan.recruiterName || "N/A"}</td>
-              <td className="py-2 px-4 border-b">{plan.name}</td>
-              <td className="py-2 px-4 border-b">{plan.expirationDate}</td>
-              <td className="py-2 px-4 border-b">
-                <button
-                  onClick={() => handleRenewPlan(plan)}
-                  className="bg-green-500 text-white px-2 py-1 rounded"
-                >
-                  Renew
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Plan Expiration Dashboard
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 flex flex-wrap gap-4">
+            <select 
+              value={filterDays}
+              onChange={(e) => setFilterDays(Number(e.target.value))}
+              className="rounded-md border border-gray-300 px-3 py-1"
+            >
+              <option value={7}>Next 7 days</option>
+              <option value={30}>Next 30 days</option>
+              <option value={90}>Next 90 days</option>
+            </select>
 
-      {/* Modal for updating expiration date */}
-      <Modal isOpen={modalIsOpen} onRequestClose={() => setModalIsOpen(false)} contentLabel="Renew Plan">
-        <h2 className="text-lg font-semibold mb-4">
-          Renew Plan for {recruiterDetails ? recruiterDetails.name : "Selected Recruiter"}
-        </h2>
-        <p>{recruiterDetails ? recruiterDetails.email : "Loading recruiter details..."}</p>
-        <label className="block mb-2">
-          New Expiration Date:
-          <input
-            type="date"
-            value={newExpirationDate}
-            onChange={(e) => setNewExpirationDate(e.target.value)}
-            className="border border-gray-300 rounded p-2 w-full"
-          />
-        </label>
-        <div className="mt-4 flex justify-end">
-          <button onClick={handleSave} className="bg-blue-500 text-white px-4 py-2 rounded mr-2">
-            Save
-          </button>
-          <button onClick={() => setModalIsOpen(false)} className="bg-gray-500 text-white px-4 py-2 rounded">
-            Cancel
-          </button>
-        </div>
-      </Modal>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="rounded-md border border-gray-300 px-3 py-1"
+            >
+              <option value="all">All Users</option>
+              <option value="user">Users Only</option>
+              <option value="recruiter">Recruiters Only</option>
+            </select>
+          </div>
+
+          <div className="space-y-4">
+            {filteredUsers.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                No users found with plans expiring within {filterDays} days.
+              </div>
+            ) : (
+              filteredUsers.map(user => {
+                const daysRemaining = calculateDaysRemaining(user.planExpiry);
+                const status = getExpiryStatus(daysRemaining);
+                
+                return (
+                  <Alert key={user.id} variant={status === 'critical' ? 'destructive' : 'default'}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium">{user.name}</h3>
+                        <AlertDescription>
+                          {user.type.charAt(0).toUpperCase() + user.type.slice(1)} - {user.plan} Plan
+                        </AlertDescription>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">
+                          {daysRemaining} days remaining
+                        </div>
+                        <div className="text-sm">
+                          Expires: {new Date(user.planExpiry).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  </Alert>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

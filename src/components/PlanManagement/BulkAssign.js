@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Users } from 'lucide-react';
-import { fetchUsers, assignChangePlan, bulkAssignPlans } from '../../services/api'; // Import the API functions
+import { fetchUsers, assignChangePlan, bulkAssignPlans } from '../../services/api';
 
-// Sample Card Component
 const Card = ({ children }) => (
   <div className="border rounded-lg p-4 shadow-md">
     {children}
   </div>
 );
 
-// Sample Card Header Component
 const CardHeader = ({ title, description }) => (
   <div className="mb-4">
     <h2 className="text-lg font-semibold">{title}</h2>
@@ -17,14 +15,12 @@ const CardHeader = ({ title, description }) => (
   </div>
 );
 
-// Sample Select Component
 const Select = ({ value, onChange, children }) => (
   <select value={value} onChange={(e) => onChange(e.target.value)} className="border rounded">
     {children}
   </select>
 );
 
-// Sample Button Component
 const Button = ({ onClick, disabled, children }) => (
   <button
     onClick={onClick}
@@ -35,7 +31,6 @@ const Button = ({ onClick, disabled, children }) => (
   </button>
 );
 
-// Sample Alert Component
 const Alert = ({ children }) => (
   <div className="p-4 border border-green-200 bg-green-50 rounded">
     {children}
@@ -44,7 +39,7 @@ const Alert = ({ children }) => (
 
 const PlanManagement = () => {
   const [users, setUsers] = useState([]);
-  const [plans] = useState(['Basic', 'Premium', 'VIP']); // Updated plans
+  const [plans] = useState(['Basic', 'Premium', 'VIP']);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [bulkPlan, setBulkPlan] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
@@ -52,19 +47,18 @@ const PlanManagement = () => {
   useEffect(() => {
     const fetchAllUsers = async () => {
       try {
-        const usersData = await fetchUsers(); // Fetch users using the new API function
+        const usersData = await fetchUsers();
         setUsers(usersData);
       } catch (error) {
         console.error("Error fetching users:", error);
       }
     };
-
     fetchAllUsers();
   }, []);
 
   const handlePlanChange = async (userId, newPlan) => {
     try {
-      await assignChangePlan(userId, newPlan); // Call your API function
+      await assignChangePlan(userId, newPlan);
       setUsers(users.map(user => 
         user.id === userId ? { ...user, currentPlan: newPlan } : user
       ));
@@ -85,9 +79,9 @@ const PlanManagement = () => {
 
   const handleSelectAll = (isChecked) => {
     if (isChecked) {
-      setSelectedUsers(users.map(user => user.id)); // Select all users
+      setSelectedUsers(users.map(user => user.id));
     } else {
-      setSelectedUsers([]); // Deselect all users
+      setSelectedUsers([]);
     }
   };
 
@@ -95,7 +89,7 @@ const PlanManagement = () => {
     if (!bulkPlan || selectedUsers.length === 0) return;
 
     try {
-      await bulkAssignPlans(selectedUsers, bulkPlan); // Call your API function
+      await bulkAssignPlans(selectedUsers, bulkPlan);
       setUsers(users.map(user => 
         selectedUsers.includes(user.id)
           ? { ...user, currentPlan: bulkPlan }
@@ -148,6 +142,7 @@ const PlanManagement = () => {
                   <input
                     type="checkbox"
                     onChange={(e) => handleSelectAll(e.target.checked)}
+                    checked={selectedUsers.length === users.length && users.length > 0}
                     className="h-4 w-4"
                   />
                 </th>
@@ -192,7 +187,6 @@ const PlanManagement = () => {
         </div>
       </Card>
 
-      {/* Success Message */}
       {showSuccess && (
         <Alert>
           <Check className="h-4 w-4 text-green-600" />

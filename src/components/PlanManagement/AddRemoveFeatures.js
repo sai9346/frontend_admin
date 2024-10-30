@@ -1,184 +1,162 @@
+// components/AddRemoveFeatures.js
 import React, { useState, useEffect } from 'react';
-import { fetchPlans, addFeatureToPlan, removeFeatureFromPlan } from '../../services/api'; // Import the API functions
 import Swal from 'sweetalert2';
+import { fetchPlans, addFeatureToPlan, removeFeatureFromPlan } from '../../services/api';
+import { Loader2 } from 'lucide-react';
 
+// Card Component
+const Card = ({ className, children }) => (
+  <div className={`border rounded shadow-md p-4 ${className}`}>
+    {children}
+  </div>
+);
+
+// Button Component
+const Button = ({ onClick, disabled, children, className, variant }) => {
+  const baseStyle = "px-4 py-2 rounded focus:outline-none";
+  const variantStyle = variant === "destructive" ? "bg-red-500 text-white" : "bg-blue-500 text-white";
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${baseStyle} ${variantStyle} ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+
+// Input Component
+const Input = ({ type, value, onChange, placeholder, className }) => (
+  <input
+    type={type}
+    value={value}
+    onChange={onChange}
+    placeholder={placeholder}
+    className={`border rounded p-2 w-full ${className}`}
+  />
+);
+
+// Main AddRemoveFeatures Component
 const AddRemoveFeatures = () => {
-  const [selectedPlanId, setSelectedPlanId] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('Basic');
-  const [feature, setFeature] = useState('');
-  const [quota, setQuota] = useState('');
-  const [description, setDescription] = useState('');
-  const [features, setFeatures] = useState({});
+  const [selectedPlan, setSelectedPlan] = useState('');
   const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [featureName, setFeatureName] = useState('');
+  const [featureQuota, setFeatureQuota] = useState('');
+  const [featureDescription, setFeatureDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    const loadPlans = async () => {
       try {
         const data = await fetchPlans();
-        const initializedFeatures = {};
-        data.forEach(plan => {
-          initializedFeatures[plan.name] = Array.isArray(plan.features) ? plan.features.map(f => f.name) : [];
-        });
-
-        setFeatures(initializedFeatures);
         setPlans(data);
-
-        const defaultPlan = data.find(plan => plan.name === 'Basic');
-        if (defaultPlan) {
-          setSelectedPlanId(defaultPlan._id);
-        }
       } catch (error) {
-        console.error("Error fetching plans:", error);
-        Swal.fire('Error', 'Failed to fetch plans. Please try again later.', 'error');
+        console.error('Error fetching plans:', error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchData();
+    loadPlans();
   }, []);
 
-  const handleFeatureChange = (e) => {
-    setFeature(e.target.value);
-  };
-
-  const handleQuotaChange = (e) => {
-    setQuota(e.target.value);
-  };
-
-  const handleDescriptionChange = (e) => {
-    setDescription(e.target.value);
-  };
-
-  const handlePlanChange = (e) => {
-    const planName = e.target.value;
-    setSelectedPlan(planName);
-
-    const selectedPlanData = plans.find(plan => plan.name === planName);
-    if (selectedPlanData) {
-      setSelectedPlanId(selectedPlanData._id);
+  const handleAddFeature = async () => {
+    if (!selectedPlan) {
+      return Swal.fire('Select a plan first!');
+    }
+    
+    try {
+      const response = await addFeatureToPlan(selectedPlan, { 
+        name: featureName, 
+        quota: featureQuota, 
+        description: featureDescription 
+      });
+      Swal.fire('Feature added!', response.message);
+      const updatedPlans = await fetchPlans();
+      setPlans(updatedPlans);
+      setFeatureName('');
+      setFeatureQuota('');
+      setFeatureDescription('');
+    } catch (error) {
+      Swal.fire('Error adding feature', error.message);
     }
   };
 
-  const addFeature = async () => {
-    if (!feature.trim() || !quota.trim() || !description.trim()) {
-      return Swal.fire('Error', 'Feature name, quota, and description cannot be empty', 'error');
-    }
-
-    if (features[selectedPlan]?.includes(feature)) {
-      return Swal.fire('Error', 'Feature already exists', 'error');
+  const handleRemoveFeature = async (featureId) => {
+    if (!selectedPlan) {
+      return Swal.fire('Select a plan first!');
     }
 
     try {
-      await addFeatureToPlan(selectedPlanId, { name: feature, quota, description });
-      setFeatures({
-        ...features,
-        [selectedPlan]: [...(features[selectedPlan] || []), feature]
-      });
-      setFeature('');
-      setQuota('');
-      setDescription('');
-      Swal.fire('Success', 'Feature added successfully', 'success');
+      const response = await removeFeatureFromPlan(selectedPlan, featureId);
+      Swal.fire('Feature removed!', response.message);
+      const updatedPlans = await fetchPlans();
+      setPlans(updatedPlans);
     } catch (error) {
-      console.error("Error adding feature:", error);
-      Swal.fire('Error', 'Failed to add feature. Please try again.', 'error');
+      Swal.fire('Error removing feature', error.message);
     }
   };
 
-  const removeFeature = async (featureToRemove) => {
-    Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, remove it!'
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          await removeFeatureFromPlan(selectedPlanId, featureToRemove);
-          setFeatures({
-            ...features,
-            [selectedPlan]: features[selectedPlan].filter(f => f !== featureToRemove),
-          });
-          Swal.fire('Success', 'Feature removed successfully', 'success');
-        } catch (error) {
-          console.error("Error removing feature:", error);
-          Swal.fire('Error', 'Failed to remove feature. Please try again.', 'error');
-        }
-      }
-    });
-  };
+  if (isLoading) {
+    return <Loader2 />;
+  }
 
   return (
-    <div className="p-4" style={{ backgroundColor: '#f9f9f9', borderRadius: '8px', maxWidth: '600px', margin: '0 auto' }}>
-      <h3>Manage Plan Features</h3>
-
-      {loading ? (
-        <p>Loading plans...</p>
-      ) : (
-        <>
-          <div>
-            <label htmlFor="plan-select">Select Plan:</label>
-            <select
-              id="plan-select"
-              value={selectedPlan}
-              onChange={handlePlanChange}
-              style={{ padding: '8px', margin: '8px 0', backgroundColor: '#e3e3e3', borderRadius: '4px' }}
-            >
-              {plans.map((plan) => (
-                <option key={plan._id} value={plan.name}>
-                  {plan.name}
-                </option>
+    <div className="space-y-4">
+      <Card>
+        <h2 className="text-xl font-bold">Manage Features</h2>
+        <select
+          value={selectedPlan}
+          onChange={(e) => setSelectedPlan(e.target.value)}
+          className="border rounded p-2 w-full"
+        >
+          <option value="">Select a Plan</option>
+          {plans.map(plan => (
+            <option key={plan._id} value={plan._id}>{plan.name}</option>
+          ))}
+        </select>
+        <Input
+          type="text"
+          value={featureName}
+          onChange={(e) => setFeatureName(e.target.value)}
+          placeholder="Feature Name"
+        />
+        <Input
+          type="number"
+          value={featureQuota}
+          onChange={(e) => setFeatureQuota(e.target.value)}
+          placeholder="Feature Quota"
+        />
+        <Input
+          type="text"
+          value={featureDescription}
+          onChange={(e) => setFeatureDescription(e.target.value)}
+          placeholder="Feature Description"
+        />
+        <Button onClick={handleAddFeature}>Add Feature</Button>
+      </Card>
+      {selectedPlan && (
+        <Card>
+          <h3 className="text-lg font-bold">Current Features</h3>
+          {plans.find(plan => plan._id === selectedPlan)?.features?.length > 0 ? (
+            <ul>
+              {plans.find(plan => plan._id === selectedPlan).features.map((feature, index) => (
+                <li key={feature._id || index} className="flex justify-between py-1">
+                  <span>
+                    {feature.name || 'Unnamed Feature'}
+                  </span>
+                  <Button variant="destructive" onClick={() => handleRemoveFeature(feature._id)}>
+                    Remove
+                  </Button>
+                </li>
               ))}
-            </select>
-          </div>
-
-          <div>
-            <input
-              type="text"
-              value={feature}
-              onChange={handleFeatureChange}
-              placeholder="Enter Feature"
-              style={{ padding: '8px', borderRadius: '4px', marginRight: '8px' }}
-            />
-            <input
-              type="text"
-              value={quota}
-              onChange={handleQuotaChange}
-              placeholder="Enter Quota"
-              style={{ padding: '8px', borderRadius: '4px', marginRight: '8px' }}
-            />
-            <input
-              type="text"
-              value={description}
-              onChange={handleDescriptionChange}
-              placeholder="Enter Description"
-              style={{ padding: '8px', borderRadius: '4px', marginRight: '8px' }}
-            />
-            <button onClick={addFeature} style={{ padding: '8px', backgroundColor: '#28a745', color: 'white', borderRadius: '4px' }}>
-              Add Feature
-            </button>
-          </div>
-
-          <h4>Features for {selectedPlan}:</h4>
-          <ul>
-            {features[selectedPlan]?.map((f, index) => (
-              <li key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {f}
-                <button 
-                  onClick={() => removeFeature(f)} 
-                  style={{ marginLeft: '10px', padding: '4px 8px', backgroundColor: '#dc3545', color: 'white', borderRadius: '4px' }}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
+            </ul>
+          ) : (
+            <p>No features available for this plan.</p>
+          )}
+        </Card>
       )}
     </div>
   );

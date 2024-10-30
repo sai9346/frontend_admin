@@ -1,91 +1,139 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import { Check } from 'lucide-react';
+import { fetchUsers, updateFeatureQuotas } from '../../services/api';
 
-const UpdatePlans = () => {
-  const { id } = useParams();
-  const [plans, setPlans] = useState([]);
-  const [selectedPlan, setSelectedPlan] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpError, setOtpError] = useState('');
+// Card Component
+const Card = ({ children, className }) => (
+  <div className={`w-full max-w-7xl mx-auto p-6 shadow-md border rounded-md ${className}`}>
+    {children}
+  </div>
+);
 
-  // Dummy data for plans
-  const dummyPlans = [
-    { id: 'basic', name: 'Basic' },
-    { id: 'pro', name: 'Pro' },
-    { id: 'enterprise', name: 'Enterprise' },
-  ];
+const CardHeader = ({ children }) => <div className="mb-4">{children}</div>;
+const CardTitle = ({ children }) => <h2 className="text-2xl font-semibold text-gray-800">{children}</h2>;
+const CardContent = ({ children }) => <div>{children}</div>;
+
+const Alert = ({ variant, children }) => (
+  <div className={`alert ${variant === 'destructive' ? 'bg-red-100 border-red-500' : 'bg-green-100 border-green-500'} border-t-4 p-3 mt-4 rounded-md`}>
+    <div className="flex items-center space-x-2">
+      <Check className={`w-5 h-5 ${variant === 'destructive' ? 'text-red-500' : 'text-green-500'}`} />
+      <span className="text-xs font-semibold">{children}</span>
+    </div>
+  </div>
+);
+
+const UpdatePlan = () => {
+  const [users, setUsers] = useState([]);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    // Simulating API call to fetch plans
-    setTimeout(() => {
-      setPlans(dummyPlans);
-      setLoading(false);
-    }, 1000);
+    const fetchAllUsers = async () => {
+      try {
+        const usersData = await fetchUsers();
+        setUsers(usersData);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    fetchAllUsers();
   }, []);
 
-  const handleSendOtp = async () => {
+  const handleQuotaChange = (userId, quotaType, value) => {
+    setUsers(users.map(user => 
+      user.id === userId 
+        ? { ...user, [quotaType]: value }
+        : user
+    ));
+  };
+
+  const saveQuotas = async (userId) => {
+    const user = users.find(user => user.id === userId);
+    const { jobPosts, videoInterviewSlots, candidateSearchLimit } = user;
+
     try {
-      await axios.post(`http://localhost:5000/api/otp/generate`, { adminId: id, recipient: 'user@example.com' });
-      setOtpSent(true);
-      alert('OTP has been sent to your email/phone.');
+      await updateFeatureQuotas(userId, { jobPosts, videoInterviewSlots, candidateSearchLimit });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
-      console.error('Error sending OTP:', error);
-      setError('Failed to send OTP.');
+      console.error("Error updating quotas:", error);
     }
   };
-
-  const handleVerifyOtp = async () => {
-    try {
-      const response = await axios.post(`http://localhost:5000/api/otp/validate`, { otp, adminId: id, recipient: 'user@example.com' });
-      if (response.data.message === 'OTP is valid') {
-        handleUpdate(); // Proceed to update plan
-      } else {
-        setOtpError('Invalid OTP. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error verifying OTP:', error);
-      setOtpError('Failed to verify OTP.');
-    }
-  };
-
-  const handleUpdate = () => {
-    alert(`Plan updated to: ${selectedPlan}`);
-    // You can add your API call to update the plan here
-  };
-
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
 
   return (
-    <div>
-      <h2 className="text-xl">Update Plan</h2>
-      <select value={selectedPlan} onChange={(e) => setSelectedPlan(e.target.value)}>
-        <option value="">Select Plan</option>
-        {plans.map((plan) => (
-          <option key={plan.id} value={plan.id}>{plan.name}</option>
-        ))}
-      </select>
-      <button onClick={handleSendOtp} className="mt-2 bg-blue-500 text-white px-4 py-2">Send OTP</button>
+    <div className="p-8 flex justify-center items-center">
+      <Card>
+        <CardHeader>
+          <CardTitle>Plan and Quota Management</CardTitle>
+          <p className="text-sm text-gray-600">Modify feature quotas for users and recruiters.</p>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-sm">
+              <thead className="bg-gray-200">
+                <tr>
+                  <th className="px-2 py-2 text-left font-medium text-gray-700">Name</th>
+                  <th className="px-2 py-2 text-left font-medium text-gray-700">Email</th>
+                  <th className="px-2 py-2 text-left font-medium text-gray-700">Job Posts</th>
+                  <th className="px-2 py-2 text-left font-medium text-gray-700">Video Slots</th>
+                  <th className="px-2 py-2 text-left font-medium text-gray-700">Search Limit</th>
+                  <th className="px-2 py-2 text-left font-medium text-gray-700">Save</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id} className="border-t">
+                    <td className="px-2 py-2">{user.name}</td>
+                    <td className="px-2 py-2">{user.email}</td>
+                    <td className="px-2 py-2">
+                      <input
+                        type="number"
+                        className="w-full p-2 border rounded-md"
+                        value={user.jobPosts || 0}
+                        onChange={(e) => handleQuotaChange(user.id, 'jobPosts', parseInt(e.target.value))}
+                        min="0"
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <input
+                        type="number"
+                        className="w-full p-2 border rounded-md"
+                        value={user.videoInterviewSlots || 0}
+                        onChange={(e) => handleQuotaChange(user.id, 'videoInterviewSlots', parseInt(e.target.value))}
+                        min="0"
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <input
+                        type="number"
+                        className="w-full p-2 border rounded-md"
+                        value={user.candidateSearchLimit || 0}
+                        onChange={(e) => handleQuotaChange(user.id, 'candidateSearchLimit', parseInt(e.target.value))}
+                        min="0"
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <button 
+                        onClick={() => saveQuotas(user.id)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs"
+                      >
+                        Save
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
-      {otpSent && (
-        <div>
-          <input 
-            type="text" 
-            placeholder="Enter OTP" 
-            value={otp} 
-            onChange={(e) => setOtp(e.target.value)} 
-            className="mt-2 border p-2"
-          />
-          <button onClick={handleVerifyOtp} className="mt-2 bg-green-500 text-white px-4 py-2">Verify OTP</button>
-          {otpError && <p className="text-red-500">{otpError}</p>}
-        </div>
+      {showSuccess && (
+        <Alert variant="success">
+          Success: Quotas updated successfully.
+        </Alert>
       )}
     </div>
   );
 };
 
-export default UpdatePlans;
+export default UpdatePlan;

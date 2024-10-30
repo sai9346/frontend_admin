@@ -1,77 +1,94 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+// src/components/UserManagement.jsx
 
-const ChangeQuotas = () => {
-  const { id } = useParams(); // eslint-disable-line no-unused-vars
-  const [quota, setQuota] = useState(0);
-  const [otp, setOtp] = useState('');
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [otpError, setOtpError] = useState(null);
+import React, { useState, useEffect } from 'react';
+import { createUser, updateUserQuotas, getAllUsers } from '../../services/api'; // Adjust the import based on your structure
 
-  const correctOtp = '1234'; // Demo OTP for validation
+const UserManagement = () => {
+    const [users, setUsers] = useState([]);
+    const [userData, setUserData] = useState({
+        name: '',
+        email: '',
+        password: '',
+        type: 'recruiter',
+        plan: '',
+        company: '',
+        phone: '',
+        planExpiration: '',
+        quotas: {
+            jobPosts: { total: 0, used: 0 },
+            candidateSearches: { total: 0, used: 0 },
+            bulkMessages: { total: 0, used: 0 },
+            videoInterviews: { total: 0, used: 0 },
+        },
+    });
 
-  const handleChangeQuota = () => {
-    setShowOtpModal(true); // Open the OTP modal when quota change is clicked
-  };
+    // Fetch users on component mount
+    useEffect(() => {
+        const fetchUsers = async () => {
+            const result = await getAllUsers();
+            setUsers(result.data);
+        };
+        fetchUsers();
+    }, []);
 
-  const handleOtpSubmit = () => {
-    if (otp === correctOtp) {
-      alert(`Quota updated to: ${quota}`);
-      setShowOtpModal(false); // Close modal on success
-      setOtpError(null); // Clear any error
-    } else {
-      setOtpError('Incorrect OTP. Please try again.');
-    }
-  };
+    // Handle input change
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setUserData({ ...userData, [name]: value });
+    };
 
-  const handleCloseModal = () => {
-    setShowOtpModal(false);
-    setOtpError(null);
-  };
+    // Handle user creation
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const response = await createUser(userData);
+        if (response.status === 201) {
+            setUsers([...users, response.data.user]);
+            setUserData({ name: '', email: '', password: '', type: 'recruiter', plan: '', company: '', phone: '', planExpiration: '', quotas: { jobPosts: { total: 0, used: 0 }, candidateSearches: { total: 0, used: 0 }, bulkMessages: { total: 0, used: 0 }, videoInterviews: { total: 0, used: 0 } } });
+        }
+    };
 
-  return (
-    <div>
-      <h2 className="text-xl">Change Quota</h2>
-      <input
-        type="number"
-        value={quota}
-        onChange={(e) => setQuota(Number(e.target.value))} // Ensure input value is a number
-        placeholder="Enter new quota"
-        className="border border-gray-300 p-2"
-      />
-      <button onClick={handleChangeQuota} className="mt-2 bg-green-500 text-white px-4 py-2">
-        Change Quota
-      </button>
+    // Handle quotas update
+    const handleQuotaUpdate = async (userId) => {
+        const updatedQuotas = {
+            jobPosts: { total: 5, used: 2 }, // Example update
+            candidateSearches: { total: 10, used: 3 },
+            bulkMessages: { total: 8, used: 4 },
+            videoInterviews: { total: 6, used: 1 },
+        };
+        const response = await updateUserQuotas(userId, updatedQuotas);
+        if (response.status === 200) {
+            // Optionally refresh user list
+            const updatedUsers = users.map(user => (user._id === userId ? { ...user, quotas: updatedQuotas } : user));
+            setUsers(updatedUsers);
+        }
+    };
 
-      {/* OTP Modal */}
-      {showOtpModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-600 bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg">
-            <h3 className="text-lg font-bold">Enter OTP</h3>
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              placeholder="Enter OTP"
-              className="border border-gray-300 p-2 mt-2"
-            />
-            {otpError && <p className="text-red-500 mt-2">{otpError}</p>}
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={handleOtpSubmit}
-                className="bg-green-500 text-white px-4 py-2 mr-2"
-              >
-                Verify OTP
-              </button>
-              <button onClick={handleCloseModal} className="bg-gray-500 text-white px-4 py-2">
-                Cancel
-              </button>
-            </div>
-          </div>
+    return (
+        <div>
+            <h2>User Management</h2>
+            <form onSubmit={handleSubmit}>
+                <input name="name" value={userData.name} onChange={handleChange} placeholder="Name" required />
+                <input name="email" value={userData.email} onChange={handleChange} placeholder="Email" required />
+                <input name="password" value={userData.password} onChange={handleChange} placeholder="Password" required type="password" />
+                <input name="type" value={userData.type} onChange={handleChange} placeholder="Type" />
+                <input name="plan" value={userData.plan} onChange={handleChange} placeholder="Plan" />
+                <input name="company" value={userData.company} onChange={handleChange} placeholder="Company" />
+                <input name="phone" value={userData.phone} onChange={handleChange} placeholder="Phone" />
+                <input name="planExpiration" value={userData.planExpiration} onChange={handleChange} placeholder="Plan Expiration" />
+                <button type="submit">Create User</button>
+            </form>
+
+            <h3>Users List</h3>
+            <ul>
+                {users.map(user => (
+                    <li key={user._id}>
+                        {user.name} - {user.email}
+                        <button onClick={() => handleQuotaUpdate(user._id)}>Update Quotas</button>
+                    </li>
+                ))}
+            </ul>
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
-export default ChangeQuotas;
+export default UserManagement;
