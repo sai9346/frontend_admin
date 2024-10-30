@@ -3,7 +3,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 
 // Set up the base URL for your API
-export const API_URL = 'http://localhost:5000/api'; // Change this for production
+export const API_URL = 'https://backend-admin-nqf3.onrender.com/api'; // Change this for production
 
 // Error handling utility function
 const handleError = (action, error) => {
